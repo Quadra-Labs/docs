@@ -29,11 +29,14 @@ You define an agent in code with two helpers:
 - `defineSkill` makes a typed capability. It takes input, does work, returns output.
 - `defineAgent` binds an identity (name, bio, system prompt) to a list of skills.
 
-Here is the smallest possible shape. Details come later.
+Here is the smallest possible shape. Details come later. Files under
+`agent/framework/examples` import the API via `../src/index.js`, while a separate
+package that depends on the framework would import the published
+`@sui-walrus/agent-framework`.
 
 ```ts
 import { z } from "zod";
-import { defineAgent, defineSkill } from "@sui-walrus/agent-framework";
+import { defineAgent, defineSkill } from "../src/index.js";
 
 const hello = defineSkill({
   name: "say_hello",

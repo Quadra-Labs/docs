@@ -13,9 +13,13 @@ A skill is a typed function. It has a name, a description, an input schema, an
 output schema, and a `run`. The runner checks the input and output against your
 zod schemas.
 
+Files under `agent/framework/examples` import the API via `../src/index.js`, while
+a separate package that depends on the framework would import the published
+`@sui-walrus/agent-framework`.
+
 ```ts
 import { z } from "zod";
-import { defineSkill } from "@sui-walrus/agent-framework";
+import { defineSkill } from "../src/index.js";
 
 export const fetchPrice = defineSkill({
   name: "fetch_price",
@@ -72,7 +76,7 @@ optional.
 You attach skills with `defineAgent`.
 
 ```ts
-import { defineAgent } from "@sui-walrus/agent-framework";
+import { defineAgent } from "../src/index.js";
 import { fetchPrice } from "./fetchPrice.js";
 
 export const myAgent = defineAgent({

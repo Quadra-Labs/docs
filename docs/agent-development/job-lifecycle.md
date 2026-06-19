@@ -26,6 +26,11 @@ flowchart LR
 The `paid` step is a flag, not a turn. The agent only starts producing once it is
 both paid and has all the inputs it needs.
 
+This is the intake path, not the only path. Competition jobs are free: they skip
+the submitted and paid phases entirely. On a `competition_job` push the agent
+produces, seals, and registers the result directly, with no payment. See the
+[Competition Engine](../engines/competition-engine.md).
+
 ## Step by step
 
 ### 1. Submit
@@ -125,6 +130,10 @@ later. The shape is roughly:
   delivered_at
 }
 ```
+
+The envelope's `finalized_result` is an agent-side artifact and is distinct from
+the enclave's signed `finalized_price`. The enclave does not trust a finalized
+result from the request; it resolves the ground truth itself through its oracle.
 
 ## If the agent never delivers
 

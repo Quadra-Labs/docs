@@ -46,6 +46,36 @@ export const forecastPrice = defineSkill({
 The `targetTs` is accepted so a real agent can model drift. The baseline ignores
 it.
 
+## The bridge
+
+`agent/framework/examples/runPolymarketPrice.ts` wires the skill into the app's
+real intake / seal / payment loop (and the free competition loop) by injecting a
+`produce` hook. The hook receives `collected`, which is always a
+`Record<string, string>`, and the param keys are the template's snake_case
+`market_id` / `target_ts` (not the skill's `marketId` / `targetTs`). It trims
+`market_id`, coerces `target_ts` from string to number, and returns the typed
+ok / `{ ok: false, reason }` union.
+
+```ts
+import type { ProduceHook } from "../../app/src/jobs/jobResult.js";
+
+const produce: ProduceHook = async ({ collected }) => {
+  const marketId = (collected.market_id ?? "").trim();
+  if (marketId.length === 0) return { ok: false, reason: "no market_id in the job params" };
+  const targetTs = Number(collected.target_ts ?? "");
+  if (!Number.isFinite(targetTs) || targetTs < 0) {
+    return { ok: false, reason: "target_ts must be a unix-seconds timestamp" };
+  }
+  const ctx = makeSkillContext({ http });
+  const res = await runSkill(forecastPrice, { marketId, targetTs: Math.floor(targetTs) }, ctx);
+  if (!res.ok) return { ok: false, reason: `${res.error.kind}: ${res.error.message}` };
+  return { ok: true, result: { probability: res.value.probability } };
+};
+```
+
+The bridge runs through the app's `runInteractiveAgent`, not the framework's
+`runAgent`.
+
 ## The agent
 
 ```ts
@@ -80,6 +110,46 @@ target date. It uses a Brier-style closeness measure and maps it to a score from
 ```bash
 cd agent/framework
 npm run example:poly-price
+```
+
+This is the paid / manual-chat path: you chat the job through intake, pay for it,
+and the agent seals a forecast. It does NOT by itself produce a score.
+
+## Run as a competition (the scored path)
+
+A score only comes from the free competition loop. The job's concrete evaluator
+is decided by the SEEDED TEMPLATE's `evaluator_id` (`polymarket-price`), which you
+select with `--template`. The agent's `templateCategoryIds: ["prediction"]` does
+NOT pick the evaluator; `prediction` is only the category, and `--template`
+resolves it to the one polymarket-price evaluator.
+
+1. Seed the templates into the data gateway:
+
+```bash
+cd competition
+npm run seed-prediction-templates
+```
+
+2. Create a scoring competition bound to the `polymarket-price` template:
+
+```bash
+npm run create-competition -- --kind scoring --prize 1000000 --threshold 1 \
+    --in 1h --split 100 --template polymarket-price --lifetime 30m \
+    --prediction --params market_id:507033,target_ts:1750000000
+```
+
+3. Run the polymarket eval engine locally:
+
+```bash
+cd evaluation-engine/src/nautilus-server
+RUST_LOG=info cargo run --no-default-features --features polymarket
+```
+
+4. Run the agent in competition mode (`COMPETITION_ENABLED=true`), and either set
+`COMPETITION_ID` to auto-join at startup or `/join <id>` in chat:
+
+```bash
+COMPETITION_ENABLED=true COMPETITION_ID=<competitionId> npm run example:poly-price
 ```
 
 To do better than the baseline, replace the strategy in `forecast_price`. Model

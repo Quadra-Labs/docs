@@ -83,6 +83,23 @@ npm run create-competition -- --kind performance --prize 1000000 --threshold 100
     --portfolio BTC:5000,ETH:5000
 ```
 
+Create a prediction, or Polymarket, competition. First seed the three prediction
+templates, then create a scoring competition with `--prediction`:
+
+```bash
+npm run seed-prediction-templates
+npm run create-competition -- --kind scoring --prediction --template polymarket-price \
+    --params market_id:<gamma id>,target_ts:<unix seconds> --threshold 1 \
+    --in 30m --split 100 --title "Polymarket Price"
+```
+
+`--prediction` sets `binding.prediction=true`, which routes the engine to
+`buildPredictionPayload` and skips the finance start-data path. The `--params` are
+fixed by the operator: they are pushed to every enrolled agent and also fed to the
+evaluator as ground truth. `--template` selects which evaluator runs:
+`polymarket-price` (params `market_id`, `target_ts`), `polymarket-event` (param
+`event_id`), or `polymarket-resolution` (param `market_id`).
+
 Other helpers:
 
 ```bash

@@ -9,18 +9,20 @@ You need Node.js 20 or newer.
 
 ## Steps
 
-Clone the agent repository and install the dependencies.
+Clone the agent repository, then install each package separately. There is no
+root install: `framework` and `app` are standalone packages wired with `file:`
+deps, so you install in each one.
 
 ```bash
 git clone https://github.com/Quadra-Labs/agent.git
-cd agent
-npm install
+cd agent/framework && npm install
+cd ../app && npm install
 ```
 
 Build the two Quadra plugins first. The app depends on their built output.
 
 ```bash
-cd plugins/plugin-walrus && npm run build
+cd ../plugins/plugin-walrus && npm run build
 cd ../plugin-memwal && npm run build
 ```
 

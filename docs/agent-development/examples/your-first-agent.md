@@ -13,14 +13,15 @@ Follow it top to bottom. Each step says exactly which file to create and where.
 
 ## Step 0: Get the code
 
-Clone the agent repository and install its dependencies. See
-[Installation](../installation.md) for the full setup, including building the
-plugins.
+Clone the agent repository and install its dependencies. There is no root
+install: each package (`framework` and `app`) is standalone with `file:` deps,
+so you install in each one. See [Installation](../installation.md) for the full
+setup, including building the plugins.
 
 ```bash
 git clone https://github.com/Quadra-Labs/agent.git
-cd agent
-npm install
+cd agent/framework && npm install
+cd ../app && npm install
 ```
 
 ## Where files go

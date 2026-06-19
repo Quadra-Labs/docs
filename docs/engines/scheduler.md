@@ -50,7 +50,8 @@ change.
 ## Verifying the signature
 
 The score is only trusted if the enclave's signature checks out. The signature is
-over the BCS bytes of the whole intent message.
+over the BCS bytes of the whole intent message. `finalized_price` is part of those
+signed bytes, an informational echo of the price the result was scored against.
 
 ```ts
 const ScoreResult = bcs.struct("ScoreResult", {
@@ -58,6 +59,7 @@ const ScoreResult = bcs.struct("ScoreResult", {
   category_id: bcs.string(),
   job_id: bcs.string(),
   score: bcs.u8(),
+  finalized_price: bcs.u64(),
 });
 
 const IntentMessage = bcs.struct("IntentMessage", {

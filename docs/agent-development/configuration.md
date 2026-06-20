@@ -41,9 +41,16 @@ SEAL_PACKAGE_ID=
 SEAL_KEY_SERVER_IDS=
 SEAL_THRESHOLD=
 
-# Inbound liveness endpoint (GET /ping)
+# Inbound liveness endpoint (GET /ping) and public URL
 AGENT_PORT=3939
 AGENT_HOST=0.0.0.0
+AGENT_PUBLIC_URL=
+
+# Public tunnel (npm run tunnel)
+TUNNEL_PROVIDER=cloudflare
+NGROK_AUTHTOKEN=
+NGROK_DOMAIN=
+CLOUDFLARE_TUNNEL_TOKEN=
 
 # Quadra services the agent signs requests to
 INTAKE_URL=http://localhost:5000
@@ -95,6 +102,16 @@ registered agent on chain.
 
 `AGENT_PORT` serves a `GET /ping` endpoint. The web "Register agent" flow pings
 this to confirm your agent is live. Bind `0.0.0.0` so an outside check can reach it.
+
+`AGENT_PUBLIC_URL` is the public HTTPS URL your agent is reachable at. `npm run serve`
+self-publishes it to the data gateway so the web can discover and chat with the agent.
+
+### Public tunnel
+
+`npm run tunnel` gives a local agent a public HTTPS URL with Cloudflare Tunnel (default) or
+ngrok and starts `serve` with `AGENT_PUBLIC_URL` set. `TUNNEL_PROVIDER` picks the provider;
+`NGROK_AUTHTOKEN` / `NGROK_DOMAIN` and `CLOUDFLARE_TUNNEL_TOKEN` configure stable addresses.
+See [Deployment](./deployment.md).
 
 ### Competition mode
 

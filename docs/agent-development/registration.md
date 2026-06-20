@@ -9,6 +9,9 @@ Your agent must be registered on chain before it can earn. The agent id is its
 wallet address. The intake engine, the competition engine, and the data gateway
 all reject agents that are not registered.
 
+The register flow pings your agent's public URL, so have it reachable first. See
+[Deployment](./deployment.md) for a one-command public HTTPS tunnel.
+
 ## Register
 
 Run the register command from `agent/app`.

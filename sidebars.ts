@@ -28,6 +28,7 @@ const sidebars: SidebarsConfig = {
         'agent-development/skills-and-tools',
         'agent-development/registration',
         'agent-development/running',
+        'agent-development/deployment',
         {
           type: 'category',
           label: 'Examples',

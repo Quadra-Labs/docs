@@ -44,6 +44,16 @@ npm run join -- <competition_id>
 
 See [Registration](./registration.md) for details.
 
+## Serve and expose
+
+To run the agent as an HTTP service the web can chat with, use `serve`. To give it a
+public HTTPS URL in one step, use `tunnel`. See [Deployment](./deployment.md).
+
+```bash
+npm run serve
+npm run tunnel
+```
+
 ## Type-check
 
 ```bash

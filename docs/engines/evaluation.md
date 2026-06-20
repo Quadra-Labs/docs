@@ -6,21 +6,21 @@ title: Evaluation (Nautilus)
 # Evaluation (Nautilus)
 
 The evaluation engine scores a job. It runs inside a Sui Nautilus enclave, which is
-a secure box on AWS Nitro. One enclave image serves one evaluator family and nothing
-else. Most images serve a single evaluator; the `polymarket` image serves its three
-`polymarket-*` categories from a single feature, dispatching by `category_id`
-(`ensure_category` still rejects any category the image does not serve).
+a secure box on AWS Nitro. One enclave image serves every category and dispatches each
+job by its `category_id` (`ensure_category` still rejects any category the image does
+not serve). A top-level dispatcher peeks the category and forwards the job to the
+finance or the prediction pipeline.
 
-Keeping each evaluator family alone means its scoring code, its network allow list,
-and its measurements stay isolated from the others.
+Keeping everything in one image means there is one engine to deploy, one network allow
+list, one PCR measurement set, and one enclave URL the scheduler and competition engine
+route every `evaluator_id` to.
 
 The code is on GitHub at
 [Quadra-Labs/evaluation-engine](https://github.com/Quadra-Labs/evaluation-engine).
 
 ## The finance evaluators
 
-These predict the price of a curated asset. Each is its own enclave image and reads
-ground truth from Pyth.
+These predict the price of a curated asset and read ground truth from Pyth.
 
 | evaluator_id | agent output | scoring |
 | --- | --- | --- |
@@ -32,10 +32,9 @@ The curated assets are BTC, ETH, SOL, and SUI for now.
 
 ## The prediction evaluators
 
-The `polymarket` enclave image (one image, feature `polymarket`) serves three
-categories. It resolves ground truth from Polymarket's Gamma and CLOB APIs (not
-Pyth) and reads `market_id`, `target_ts`, and `event_id` from the job `params`. It
-dispatches by `category_id` and rejects any other category.
+These three categories resolve ground truth from Polymarket's Gamma and CLOB APIs (not
+Pyth) and read `market_id`, `target_ts`, and `event_id` from the job `params`. The
+engine dispatches them by `category_id`.
 
 | evaluator_id | agent output | scoring |
 | --- | --- | --- |
@@ -159,8 +158,7 @@ flowchart TB
     D --> E[score]
 ```
 
-1. `ensure_category` rejects a job whose `category_id` is not the one this enclave
-   serves.
+1. `ensure_category` rejects a job whose `category_id` is not one the engine serves.
 2. `ensure_timely` rejects a delivery that landed after the lifetime.
 3. `validate_output_schema` rejects an `agent_result` that is missing a field or
    has the wrong type.
@@ -170,63 +168,56 @@ flowchart TB
 
 ## Two purposes
 
-Each engine serves both halves of a job's life.
+The engine serves both halves of a job's life.
 
 - **`POST /validate`** does input checks only. Steps 1 to 3 above. No oracle, no
   scoring. The Scheduler's validator calls this when an agent claims delivery, so
   Intake can release payment. The response is unsigned, since validation only gates
   payment.
 - **`POST /process_data`** runs the full pipeline at lifetime end. The Scheduler
-  calls this. It returns the signed score.
+  calls this. It returns the signed score or metric.
 
-Finance images also expose `POST /start_data` to capture the price at delivery; the
-polymarket image does not. Every image has `GET /get_attestation` and
-`GET /health_check`.
+`POST /start_data` captures the price at delivery for the finance score categories;
+`portfolio-roi` and the polymarket categories do not use it. The engine also has
+`GET /get_attestation` and `GET /health_check`.
 
 ## Run
 
-Local development runs anywhere, with no AWS. Pick one evaluator.
+Local development runs anywhere, with no AWS. One engine serves every category on one
+port.
 
 ```bash
 cd src/nautilus-server
-RUST_LOG=info cargo run --no-default-features --features price-range-guess
-cargo test --no-default-features --features price-range-guess
+RUST_LOG=info cargo run     # all categories on :3000 (PORT overrides)
+cargo test
 ```
 
-The `polymarket` image is built the same way, with its own feature.
+Build the enclave image and its measurements on a Nitro host. The `evaluation` feature
+is the default; the build name selects the combined allow list under
+`src/apps/evaluation/`.
 
 ```bash
-RUST_LOG=info cargo run --no-default-features --features polymarket
-cargo test --no-default-features --features polymarket
-```
-
-The polymarket image exposes no `/start_data`: it resolves everything itself at
-scoring time.
-
-Build the enclave image and its measurements on a Nitro host.
-
-```bash
-make ENCLAVE_APP=price-range-guess
+make ENCLAVE_APP=evaluation
 cat out/nitro.pcrs
 make run-debug    # debug build, for development only
 ```
 
-## Register an evaluator
+## Register the engine
 
-Register each enclave's URL in the Walrus `eval_engines` catalog, from the `data/`
-package, after the gateway is running.
+There is one engine URL. Register every `evaluator_id` it serves to that same URL in
+the Walrus `eval_engines` catalog, from the `data/` package, after the gateway is
+running.
 
 ```bash
 cd ../data
-EVALUATOR_ID=price-range-guess \
-ENCLAVE_URL=http://host:port \
-ENCLAVE_OBJECT_ID=0x... \   # optional in local dev
-npm run register-eval-engine
+for id in price-range-guess up-down-guess movement-percentage-guess portfolio-roi \
+          polymarket-resolution polymarket-event polymarket-price; do
+  EVALUATOR_ID=$id \
+  ENCLAVE_URL=http://host:port \
+  ENCLAVE_OBJECT_ID=0x... \   # optional in local dev
+  npm run register-eval-engine
+done
 ```
-
-Because the `polymarket` image serves three categories from one URL, register all
-three evaluator ids (`polymarket-resolution`, `polymarket-event`, and
-`polymarket-price`) pointing at that same single enclave URL.
 
 Do not put the URL in `.env`. The Scheduler and the Competition Engine load the
 catalog and refresh when the pointer changes.

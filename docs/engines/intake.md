@@ -121,7 +121,7 @@ Config comes from the data layer's `.env`, plus intake values:
 | `INTAKE_CAP_ID` | none | The `IntakeCap` object id. |
 | `INTAKE_CONFIG_ID` | none | The shared `IntakeConfig` object id. |
 | `INTAKE_INTERNAL_TOKEN` | none | Shared secret for the validator's `/validate`. |
-| `INTAKE_VALIDATOR_URL` | `http://localhost:4000` | The validator engine. |
+| `INTAKE_VALIDATOR_URL` | `http://127.0.0.1:4000` | The validator (scheduler), internal only — same host, not public. |
 | `DATA_GATEWAY_URL` | `http://localhost:8787` | The data gateway. |
 | `ROLE_TOKEN_INTAKE` | none | Intake's role token for writing `job_scheduler`. |
 | `REDIS_URL` | `redis://127.0.0.1:6379` | The Redis connection. |
